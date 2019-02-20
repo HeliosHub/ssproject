@@ -1,3 +1,5 @@
+用putty连接服务器，能连接证明没被block
+
 禁用fastestmirror插件
 
 vi  /etc/yum/pluginconf.d/fastestmirror.conf  
