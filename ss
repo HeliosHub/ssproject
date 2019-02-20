@@ -1,76 +1,74 @@
-#!/bin/bash
-#install Shadowsocks on CentOS 7
- 
-echo "Installing Shadowsocks................................................."
- 
-CONFIG_FILE=/etc/shadowsocks.json
-SS_SERVICE_FILE=/etc/systemd/system/shadowsocks.service
-SS_PASSWORD=qweasd_helloworld
-SS_PORT=8388
-SS_IP=`ip route get 1|awk '{print $NF;exit}'`
- 
- 
-echo "root can install soft"
-yum install -y python-setuptools && easy_install pip
- 
+禁用fastestmirror插件
+
+vi  /etc/yum/pluginconf.d/fastestmirror.conf  
+#修改内容
+enabled = 1//由1改为0，禁用该插件
+
+
+安装
+yum install m2crypto python-setuptools  
+yum install python-pip  
 pip install shadowsocks
- 
-# creat shadowsocks config
- 
-cat << EOF | tee ${CONFIG_FILE}
+
+配置
+vi /etc/shadowsocks.json
+
+单用户
+
+{  
+     "server":"0.0.0.0",  
+     "server_port":1234,  
+     "local_address": "127.0.0.1",  
+     "local_port":1080,  
+     "password":"设置ss客户端的连接密码",  
+     "timeout":600,  
+     "method":"aes-256-cfb",  
+     "fast_open": false
+}
+
+多用户：
+
 {
-    "server":"${SS_IP}",
-    "server_port":${SS_PORT},
-    "local_address": "127.0.0.1",
+    "server":"0.0.0.0",
+    "local_address":"127.0.0.1",
     "local_port":1080,
-    "password":"${SS_PASSWORD}",
+    "port_password":{
+         "1234":"password0",
+         "1235":"password1",
+    },
     "timeout":600,
     "method":"aes-256-cfb",
     "fast_open": false
 }
-EOF
- 
-# check shadowsock.config && stop shadowsocks.service
-ssserver -c /etc/shadowsocks.json -d start
- 
-echo "Add firewall port....."
- 
-firewall-cmd --zone=public --add-port=8388/tcp --permanent
- 
-echo "restart firewall.service..........................................................."
- 
-systemctl restart firewalld.service
- 
- 
- 
-# set shadowssocks.service start with system
- 
-echo "create ${SS_SERVICE_FILE} && set shadowsocks.service start with system............."
- 
-cat << EOF | tee ${SS_SERVICE_FILE}
+
+开启防火墙
+yum install firewalld
+systemctl start firewalld
+firewall-cmd --zone=public --add-port=1234/tcp --permanent
+firewall-cmd --reload
+
+启动服务
+vim /usr/lib/systemd/system/ss.service
+加入
+
 [Unit]
-Description=Shadowsocks service
-After=network.target
- 
+Description=ssserver
 [Service]
-Type=simple
-User=root
-ExecStart=/usr/bin/ssserver -c ${CONFIG_FILE}
-ExecReload=/bin/kill -HUP $MAINPID
-ExecStop=/bin/kill -s QUIT $MAINPID 
-PrivateTmp=true
-KillMode=process
-Restart=on-failure
-RestartSec=5s
- 
+TimeoutStartSec=0
+ExecStart=/usr/bin/ssserver -c /etc/shadowsocks.json &
 [Install]
 WantedBy=multi-user.target
-EOF
- 
-echo "Strat shadowsock.service ........................................................"
-systemctl daemon-reload
-systemctl start shadowsocks.service
-systemctl enable shadowsocks.service
- 
-echo "ALL Done........................................................................."
- 
+
+设置开启启动
+systemctl enable ss
+
+常用命令
+systemctl start ss    #开启
+systemctl restart ss  #重启
+systemctl status      #查看状态
+
+下载客户端连接即可
+下载
+win：	https://github.com/shadowsocks/shadowsocks-windows/releases 
+mac：	https://github.com/shadowsocks/ShadowsocksX-NG/releases 
+linux：	https://github.com/shadowsocks/shadowsocks-qt5/wiki/Installation
