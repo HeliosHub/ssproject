@@ -74,3 +74,28 @@ systemctl status      #查看状态
 win：	https://github.com/shadowsocks/shadowsocks-windows/releases 
 mac：	https://github.com/shadowsocks/ShadowsocksX-NG/releases 
 linux：	https://github.com/shadowsocks/shadowsocks-qt5/wiki/Installation
+
+加速
+开启bbr：
+
+[root@server ~]# vim /etc/sysctl.conf    # 在文件末尾添加如下内容
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+7.加载系统参数：
+
+[root@vultr ~]# sysctl -p
+net.ipv6.conf.all.accept_ra = 2
+net.ipv6.conf.eth0.accept_ra = 2
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+[root@vultr ~]#
+如上，输出了我们添加的那两行配置代表正常。
+
+8.确定bbr已经成功开启：
+
+[root@vultr ~]# sysctl net.ipv4.tcp_available_congestion_control
+net.ipv4.tcp_available_congestion_control = bbr cubic reno
+[root@vultr ~]# lsmod | grep bbr
+tcp_bbr                20480  2 
+[root@vultr ~]# 
+输出内容如上，则表示bbr已经成功开启。
